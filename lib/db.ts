@@ -1,4 +1,18 @@
+import dns from "node:dns";
 import mysql from "mysql2/promise";
+
+/**
+ * The MySQL host of the association resolves to both an IPv4 and an IPv6
+ * address. Node 18+ orders the results "verbatim", which often prefers IPv6,
+ * so the connection would silently use an address that may not be on the
+ * database's remote-access allow-list. Preferring IPv4 keeps the deployment
+ * predictable: a single allow-list entry is enough.
+ *
+ * Set `DB_DNS_ORDER=verbatim` to restore the platform default.
+ */
+if ((process.env.DB_DNS_ORDER ?? "ipv4first") === "ipv4first") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 /**
  * All tables created by this project are prefixed with `yc_` (youth course) so

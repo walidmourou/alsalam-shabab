@@ -55,6 +55,14 @@ Optional overrides:
 | `ADMIN_USERNAME`       | `admin`                       | Admin area user                           |
 | `ADMIN_PASSWORD`       | `987654321`                   | Admin area password                       |
 | `ADMIN_SESSION_SECRET` | derived from `DB_PASSWORD`    | Secret used to sign the admin session     |
+| `DB_DNS_ORDER`         | `ipv4first`                   | Address family used to reach the database |
+
+> **Remote database access.** The database host resolves to both an IPv4 and an
+> IPv6 address, and the application deliberately connects over IPv4 (see
+> `DB_DNS_ORDER`) so that a single entry in the host's remote-access allow-list
+> is enough. If the connection fails with `ER_ACCESS_DENIED_ERROR`, add the
+> client address reported in the error message to that allow-list, or run the
+> application on the database server itself and use `DB_HOST=localhost`.
 
 ### 2. Install and run
 

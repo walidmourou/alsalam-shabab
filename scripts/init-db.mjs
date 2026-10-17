@@ -11,9 +11,16 @@
  * so they never touch the existing tables of the association's database.
  */
 import fs from "node:fs";
+import dns from "node:dns";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mysql from "mysql2/promise";
+
+// See the note in `lib/db.ts`: keep the database connection on IPv4 so that a
+// single remote-access allow-list entry is sufficient.
+if ((process.env.DB_DNS_ORDER ?? "ipv4first") === "ipv4first") {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
