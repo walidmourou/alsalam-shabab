@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Al-Salam Lörrach – Jugendkurs Anmeldung
 
-## Getting Started
+Bilingual (German / Arabic) registration website for the **Jugendkurs für
+Glaubensbildung** (Youth Course for Faith-Based Education) of the
+*Gemeinnütziger Verein Al-Salam in Lörrach*.
 
-First, run the development server:
+Parents watch the association's presentation video, then register one or more
+children online. An internal admin area lists every submitted registration.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Features
+
+- **Bilingual** German (`/de`, LTR) and Arabic (`/ar`, RTL) with automatic
+  language detection (`Accept-Language`) and a language switcher.
+- **Home page** with a clear invitation to watch the presentation video
+  (`public/shabab.mp4`) before registering.
+- **Registration form** collecting the parent's full name, address, phone and
+  e-mail, plus any number of children (name, birth date, gender).
+- **Consent** required for the association regulations and for a commitment to
+  regular attendance.
+- **Server-side validation** with localized, per-field error messages.
+- **Admin interface** (`/{lang}/admin`) listing all registrations with quick
+  statistics (registrations, children, boys, girls) and a per-family breakdown.
+- Full **German and Arabic** UI translations, light branded design and mobile
+  friendly layout.
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org) App Router with **Cache Components**
+  (`cacheComponents: true`) and Partial Prefetching.
+- React 19 Server Components, Server Functions/Actions and `useActionState`.
+- Tailwind CSS v4.
+- **MySQL** via `mysql2` (connection pool, prepared statements, transactions).
+
+## Getting started
+
+### 1. Configure the database
+
+The database connection is read from `.env` (already present for this project):
+
+```dotenv
+DB_NAME=...
+DB_USER=...
+DB_PASSWORD=...
+DB_HOST=...
+DB_PORT=3306
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> The `DB_*` variables may include characters such as `[`, `?` or `*`. Next.js
+> reads `.env` directly, so no extra escaping is required.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Optional overrides:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable               | Default                       | Purpose                                   |
+| ---------------------- | ----------------------------- | ----------------------------------------- |
+| `ADMIN_USERNAME`       | `admin`                       | Admin area user                           |
+| `ADMIN_PASSWORD`       | `987654321`                   | Admin area password                       |
+| `ADMIN_SESSION_SECRET` | derived from `DB_PASSWORD`    | Secret used to sign the admin session     |
 
-## Learn More
+### 2. Install and run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run db:init   # optional – creates the tables up-front
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open <http://localhost:3000> – you will be redirected to `/de` or `/ar`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Other scripts:
 
-## Deploy on Vercel
+```bash
+npm run build      # production build
+npm run start      # production server
+npm run lint       # ESLint
+npm run typecheck  # TypeScript
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Database
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+All tables created by this project are prefixed with `yc_` (youth course) so
+they **never touch the existing tables** of the association's database. The
+application creates them automatically on first use, so `npm run db:init` is
+only a convenience.
+
+| Table              | Purpose                                              |
+| ------------------ | ---------------------------------------------------- |
+| `yc_registrations` | One row per parent / family registration              |
+| `yc_children`      | One row per child, linked to a registration (1–6)     |
+
+## Routes
+
+| Route             | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| `/`               | Redirects to the detected language                 |
+| `/{lang}`         | Home page with the presentation video               |
+| `/{lang}/register`| Registration form                                   |
+| `/{lang}/admin`   | Admin login / dashboard (noindex)                   |
+
+## Admin access
+
+- URL: `/{lang}/admin`
+- User: **admin**
+- Password: **987654321**
+
+The admin session is stored in an HTTP-only cookie. In production the cookie is
+marked `Secure`, so the site must be served over **HTTPS** for the admin login
+to work. `npm run dev` works over plain HTTP.
+
+## Assets
+
+- `public/shabab.mp4` – the association's presentation video.
+- `public/shabab-poster.jpg` – poster frame shown before playback.
+- `public/logo.png` – association logo (extracted from the video).
+- `public/Icon.ico` – association emblem (also used as `app/favicon.ico`).
+
+## Deployment notes
+
+- Ensure the MySQL user is allowed to connect from the server that runs the app
+  (Hostinger: *Remote MySQL* / the host's own IP).
+- The app creates the `yc_*` tables on the first request; no manual migration is
+  needed.
+- Because Cache Components are enabled, cached pages revalidate on a schedule and
+  the admin dashboard always reads fresh data at request time.
