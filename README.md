@@ -38,31 +38,41 @@ children online. An internal admin area lists every submitted registration.
 The database connection is read from `.env` (already present for this project):
 
 ```dotenv
-DB_NAME=...
-DB_USER=...
-DB_PASSWORD=...
-DB_HOST=...
-DB_PORT=3306
+DATABASE_NAME=...
+DATABASE_USER=...
+DATABASE_PASSWORD=...
+DATABASE_HOST=...
+DATABASE_PORT=3306
+
+# Secret used to sign the admin session cookie
+JWT_SECRET=...
 ```
 
-> The `DB_*` variables may include characters such as `[`, `?` or `*`. Next.js
-> reads `.env` directly, so no extra escaping is required.
+> The `DATABASE_*` variables may include characters such as `[`, `?` or `*`.
+> Next.js reads `.env` directly, so no extra escaping is required.
 
 Optional overrides:
 
-| Variable               | Default                       | Purpose                                   |
-| ---------------------- | ----------------------------- | ----------------------------------------- |
-| `ADMIN_USERNAME`       | `admin`                       | Admin area user                           |
-| `ADMIN_PASSWORD`       | `987654321`                   | Admin area password                       |
-| `ADMIN_SESSION_SECRET` | derived from `DB_PASSWORD`    | Secret used to sign the admin session     |
-| `DB_DNS_ORDER`         | `ipv4first`                   | Address family used to reach the database |
+| Variable                | Default                       | Purpose                                   |
+| ----------------------- | ----------------------------- | ----------------------------------------- |
+| `ADMIN_USERNAME`        | `admin`                       | Admin area user                           |
+| `ADMIN_PASSWORD`        | `987654321`                   | Admin area password                       |
+| `ADMIN_SESSION_SECRET`  | falls back to `JWT_SECRET`    | Secret used to sign the admin session     |
+| `DATABASE_DNS_ORDER`    | `ipv4first`                   | Address family used to reach the database |
 
-> **Remote database access.** The database host resolves to both an IPv4 and an
-> IPv6 address, and the application deliberately connects over IPv4 (see
-> `DB_DNS_ORDER`) so that a single entry in the host's remote-access allow-list
-> is enough. If the connection fails with `ER_ACCESS_DENIED_ERROR`, add the
-> client address reported in the error message to that allow-list, or run the
-> application on the database server itself and use `DB_HOST=localhost`.
+> **Admin session signing.** `JWT_SECRET` signs the admin session cookie. There
+> is no built-in fallback: if neither `JWT_SECRET` nor `ADMIN_SESSION_SECRET` is
+> set, the admin area refuses to render rather than fall back to a guessable
+> secret. Changing the value invalidates existing admin sessions.
+
+> **Remote database access.** If `DATABASE_HOST` is a hostname it resolves to
+> both an IPv4 and an IPv6 address; the application deliberately connects over
+> IPv4 (see `DATABASE_DNS_ORDER`) so that a single entry in the host's
+> remote-access allow-list is enough. Setting `DATABASE_HOST` to a plain IP
+> address avoids the question entirely. If the connection fails with
+> `ER_ACCESS_DENIED_ERROR`, add the client address reported in the error message
+> to that allow-list, or run the application on the database server itself and
+> use `DATABASE_HOST=localhost`.
 
 ### 2. Install and run
 

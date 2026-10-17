@@ -18,7 +18,7 @@ import mysql from "mysql2/promise";
 
 // See the note in `lib/db.ts`: keep the database connection on IPv4 so that a
 // single remote-access allow-list entry is sufficient.
-if ((process.env.DB_DNS_ORDER ?? "ipv4first") === "ipv4first") {
+if ((process.env.DATABASE_DNS_ORDER ?? "ipv4first") === "ipv4first") {
   dns.setDefaultResultOrder("ipv4first");
 }
 
@@ -44,16 +44,16 @@ function loadEnv() {
 
 const fileEnv = loadEnv();
 const config = {
-  host: process.env.DB_HOST ?? fileEnv.DB_HOST,
-  port: Number(process.env.DB_PORT ?? fileEnv.DB_PORT ?? 3306),
-  user: process.env.DB_USER ?? fileEnv.DB_USER,
-  password: process.env.DB_PASSWORD ?? fileEnv.DB_PASSWORD,
-  database: process.env.DB_NAME ?? fileEnv.DB_NAME,
+  host: process.env.DATABASE_HOST ?? fileEnv.DATABASE_HOST,
+  port: Number(process.env.DATABASE_PORT ?? fileEnv.DATABASE_PORT ?? 3306),
+  user: process.env.DATABASE_USER ?? fileEnv.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD ?? fileEnv.DATABASE_PASSWORD,
+  database: process.env.DATABASE_NAME ?? fileEnv.DATABASE_NAME,
 };
 
 if (!config.host || !config.user || !config.database) {
   console.error(
-    "Missing database configuration. Please set DB_HOST, DB_USER, DB_PASSWORD and DB_NAME in .env."
+    "Missing database configuration. Please set DATABASE_HOST, DATABASE_USER, DATABASE_PASSWORD and DATABASE_NAME in .env."
   );
   process.exit(1);
 }
@@ -100,7 +100,7 @@ try {
     console.error(
       "  Hint: the remote MySQL server only accepts connections from allow-listed IPs.\n" +
         "  Add this machine's public IP in the hosting panel (Hostinger > Databases > Remote MySQL),\n" +
-        `  or set DB_HOST to the server's local address when running from the server itself.`
+        `  or set DATABASE_HOST to the server's local address when running from the server itself.`
     );
   }
   process.exit(1);

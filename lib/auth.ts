@@ -12,11 +12,27 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "987654321";
 export const ADMIN_COOKIE = "yc_admin_session";
 const SESSION_MAX_AGE = 60 * 60 * 8; // 8 hours
 
+/**
+ * Secret used to sign the admin session cookie. `JWT_SECRET` is the value
+ * configured for this deployment; `ADMIN_SESSION_SECRET` can override it.
+ *
+ * There is deliberately no hard-coded fallback: a fixed, guessable secret would
+ * let anyone forge an admin session.
+ */
+function sessionSecret(): string {
+  const secret = process.env.ADMIN_SESSION_SECRET ?? process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      "Missing JWT_SECRET (or ADMIN_SESSION_SECRET). Set it in .env to sign the admin session."
+    );
+  }
+  return secret;
+}
+
 function sessionToken(): string {
-  const secret =
-    process.env.ADMIN_SESSION_SECRET ??
-    `yc-session:${process.env.DB_PASSWORD ?? "al-salam"}`;
-  return createHash("sha256").update(secret).digest("hex");
+  return createHash("sha256")
+    .update(`yc-session:${sessionSecret()}`)
+    .digest("hex");
 }
 
 function safeEqual(a: string, b: string): boolean {

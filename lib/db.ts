@@ -8,9 +8,10 @@ import mysql from "mysql2/promise";
  * database's remote-access allow-list. Preferring IPv4 keeps the deployment
  * predictable: a single allow-list entry is enough.
  *
- * Set `DB_DNS_ORDER=verbatim` to restore the platform default.
+ * Set `DATABASE_DNS_ORDER=verbatim` to restore the platform default. When
+ * `DATABASE_HOST` is already an IP address this has no effect.
  */
-if ((process.env.DB_DNS_ORDER ?? "ipv4first") === "ipv4first") {
+if ((process.env.DATABASE_DNS_ORDER ?? "ipv4first") === "ipv4first") {
   dns.setDefaultResultOrder("ipv4first");
 }
 
@@ -42,11 +43,11 @@ function readEnv(name: string): string {
 export function getPool(): mysql.Pool {
   if (!globalForDb.__ycPool) {
     globalForDb.__ycPool = mysql.createPool({
-      host: readEnv("DB_HOST"),
-      port: Number(process.env.DB_PORT ?? 3306),
-      user: readEnv("DB_USER"),
-      password: readEnv("DB_PASSWORD"),
-      database: readEnv("DB_NAME"),
+      host: readEnv("DATABASE_HOST"),
+      port: Number(process.env.DATABASE_PORT ?? 3306),
+      user: readEnv("DATABASE_USER"),
+      password: readEnv("DATABASE_PASSWORD"),
+      database: readEnv("DATABASE_NAME"),
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
