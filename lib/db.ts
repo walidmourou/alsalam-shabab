@@ -40,6 +40,19 @@ function readEnv(name: string): string {
   return value;
 }
 
+/**
+ * How long an idle pooled connection is kept before it is closed.
+ *
+ * The shared MySQL server closes idle sessions after only 20 seconds
+ * (`wait_timeout`). mysql2 otherwise keeps idle connections for 60 seconds and
+ * hands a server-closed connection to the next query, which fails with
+ * `ECONNRESET`. Closing our own idle connections well before the server's
+ * timeout avoids that. The pool only runs its reaper when `maxIdle` is lower
+ * than `connectionLimit`.
+ */
+const IDLE_TIMEOUT_MS = 10_000;
+const MAX_IDLE = 2;
+
 export function getPool(): mysql.Pool {
   if (!globalForDb.__ycPool) {
     globalForDb.__ycPool = mysql.createPool({
@@ -51,12 +64,49 @@ export function getPool(): mysql.Pool {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      maxIdle: MAX_IDLE,
+      idleTimeout: IDLE_TIMEOUT_MS,
       charset: "utf8mb4_unicode_ci",
       timezone: "Z",
       dateStrings: true,
     });
   }
   return globalForDb.__ycPool;
+}
+
+/** Errors that mean the connection was dropped, not that the query was wrong. */
+const CONNECTION_LOST_CODES = new Set([
+  "ECONNRESET",
+  "EPIPE",
+  "ETIMEDOUT",
+  "PROTOCOL_CONNECTION_LOST",
+  "PROTOCOL_SEQUENCE_TIMEOUT",
+]);
+
+function isConnectionLost(error: unknown): boolean {
+  const code = (error as { code?: string } | null)?.code;
+  return typeof code === "string" && CONNECTION_LOST_CODES.has(code);
+}
+
+/**
+ * Runs `operation` against the pool and retries once if the connection was
+ * dropped rather than the statement rejected.
+ *
+ * This is a safety net for the rare race the idle-timeout settings don't
+ * cover. It is safe to retry a write here because a connection dropped while
+ * idle fails on the first statement of the transaction — before the commit —
+ * and the server rolls back any open transaction when the session ends.
+ */
+export async function withConnectionRetry<T>(
+  operation: () => Promise<T>
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isConnectionLost(error)) throw error;
+    console.warn("[yc] Database connection lost, retrying once.");
+    return operation();
+  }
 }
 
 const SCHEMA_STATEMENTS = [
@@ -97,7 +147,7 @@ const SCHEMA_STATEMENTS = [
  */
 export function ensureSchema(): Promise<void> {
   if (!globalForDb.__ycSchema) {
-    globalForDb.__ycSchema = (async () => {
+    globalForDb.__ycSchema = withConnectionRetry(async () => {
       const connection = await getPool().getConnection();
       try {
         for (const statement of SCHEMA_STATEMENTS) {
@@ -106,7 +156,7 @@ export function ensureSchema(): Promise<void> {
       } finally {
         connection.release();
       }
-    })().catch((error) => {
+    }).catch((error) => {
       // Do not cache a failed attempt; allow the next request to retry.
       globalForDb.__ycSchema = undefined;
       throw error;
