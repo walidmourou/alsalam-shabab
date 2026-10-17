@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { io } from "next/cache";
 import AdminDashboard from "@/components/AdminDashboard";
 import AdminLoginForm from "@/components/AdminLoginForm";
 import { isAuthenticated } from "@/lib/auth";
@@ -55,6 +56,12 @@ async function AdminGate({
   if (!(await isAuthenticated())) {
     return <AdminLoginForm dict={dict} />;
   }
+
+  // The dashboard must always reflect the live database, so keep this part of
+  // the tree out of the static shell. `io()` suspends during prerendering and
+  // resolves immediately for a real request, which also keeps values that the
+  // database driver reads internally (such as `Date.now()`) out of prerendering.
+  await io();
 
   let data: {
     registrations: Registration[];
