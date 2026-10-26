@@ -1,40 +1,10 @@
 import { adminLogout } from "@/lib/actions/admin";
+import { ageFrom, formatDate, formatDateTime } from "@/lib/dates";
 import type { Dictionary, Locale } from "@/lib/i18n";
 import type {
   Registration,
   RegistrationStats,
 } from "@/lib/registrations";
-
-function ageFrom(birthDate: string): number | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthDate);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const now = new Date();
-  let age = now.getFullYear() - year;
-  const monthDiff = now.getMonth() + 1 - month;
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < day)) {
-    age -= 1;
-  }
-  return age >= 0 ? age : null;
-}
-
-function formatDate(value: string, locale: Locale): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (!match) return value;
-  const [, year, month, day] = match;
-  return locale === "de" ? `${day}.${month}.${year}` : `${year}/${month}/${day}`;
-}
-
-function formatDateTime(value: string, locale: Locale): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(value);
-  if (!match) return value;
-  const [, year, month, day, hour, minute] = match;
-  return locale === "de"
-    ? `${day}.${month}.${year} ${hour}:${minute}`
-    : `${year}/${month}/${day} ${hour}:${minute}`;
-}
 
 function Badge({ ok, label }: { ok: boolean; label: string }) {
   return (
@@ -77,15 +47,42 @@ export default function AdminDashboard({
           <h1 className="text-2xl font-bold text-navy sm:text-3xl">{t.title}</h1>
           <p className="mt-2 text-sm text-foreground/65">{t.subtitle}</p>
         </div>
-        <form action={adminLogout}>
-          <input type="hidden" name="returnTo" value={`/${lang}/admin`} />
-          <button
-            type="submit"
-            className="rounded-full border border-navy/15 bg-white px-4 py-2 text-sm font-semibold text-navy transition hover:border-navy/30"
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/${lang}/admin/export`}
+            download
+            className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
           >
-            {t.logout}
-          </button>
-        </form>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              className="h-4 w-4"
+            >
+              <path
+                d="M8 2v7m0 0 3-3m-3 3L5 6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3 11.5v1A1.5 1.5 0 0 0 4.5 14h7a1.5 1.5 0 0 0 1.5-1.5v-1"
+                strokeLinecap="round"
+              />
+            </svg>
+            {t.export}
+          </a>
+          <form action={adminLogout}>
+            <input type="hidden" name="returnTo" value={`/${lang}/admin`} />
+            <button
+              type="submit"
+              className="rounded-full border border-navy/15 bg-white px-4 py-2 text-sm font-semibold text-navy transition hover:border-navy/30"
+            >
+              {t.logout}
+            </button>
+          </form>
+        </div>
       </div>
 
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
